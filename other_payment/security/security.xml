@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+<data noupdate="0">
+
+ <!-- Apply this group to user for activate the PDC functionality in accounting -->
+    <record id="base.group_allow_pdc_payment" model="res.groups">
+        <field name="name">Apply PDC</field>
+    </record>  
+    
+     <!-- Apply this group to user for activate the Other Payment functionality in accounting -->
+    <record id="base.group_allow_other_payment" model="res.groups">
+        <field name="name">Apply Other Payments</field>
+    </record>  
+    
+  </data>
+</openerp>

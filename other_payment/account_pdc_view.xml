@@ -1,0 +1,179 @@
+<?xml version="1.0"?>
+<openerp>
+<data>
+
+<!-- Add Pdc account in journal  -->
+
+    <record model="ir.ui.view" id="view_account_journal_form_inherit_pdc">
+        <field name="name">account.journal.form.inherit</field>
+        <field name="model">account.journal</field>
+        <field name="inherit_id" ref="account.view_account_journal_form"/>
+        <field name="arch" type="xml">
+            <field name="default_credit_account_id" position="after">
+                <field name="pdc_payable_account_id" attrs="{'invisible': [('type','not in',('bank'))],'required': [('type','in',('bank'))]}" groups="base.group_allow_pdc_payment"/>
+                <field name="pdc_receivable_account_id" attrs="{'invisible': [('type','not in',('bank'))],'required': [('type','in',('bank'))]}" groups="base.group_allow_pdc_payment"/>
+            </field>
+        </field>
+    </record>
+    
+    
+   		<record id="account_voucher_payment_inherit" model="ir.ui.view">
+            <field name="name">account.voucher.supplier.form</field>
+            <field name="model">account.voucher</field>
+            <field name="type">form</field>
+             <field name="inherit_id" ref="account_voucher.view_vendor_payment_form"/>
+            <field name="arch" type="xml">
+              	<xpath expr="//field[@name='state']" position="replace">
+                		<field name="state" widget="statusbar" statusbar_visible="draft,pdc,posted" statusbar_colors='{"proforma":"blue"}'  />
+                </xpath>
+                
+                <xpath expr="/form/header/button[@name='cancel_voucher']" position="replace">
+                	<button name="cancel_voucher" string="Cancel Receipt" states="draft,proforma,pdc"/>
+                 </xpath>
+              	
+              	<xpath expr="/form/header/button[@string='Validate']" position="replace">
+             		<button name="pdc_voucher"  type="object" string="PDC"  attrs="{'invisible': ['|','|',('pdc_state','!=','pending'),('pdc_entry','=',True),('state','=','cancel')]}" class="oe_highlight" groups="base.group_allow_pdc_payment"/>  
+					<button name="proforma_voucher" string="Validate" attrs="{'invisible': [('state','in',('cancel','posted')),'|',('pdc_entry','=',False),('pdc_state','=','pending')]}" class="oe_highlight" />
+                </xpath>
+	             <xpath expr="/form/sheet/group/group/field[@name='journal_id']" position="after">
+	                <field name="transaction_type" attrs="{'readonly': [('pdc_entry','=',True)]}" on_change="onchange_pdc_state(transaction_type,pdc_state)" required="1" groups="base.group_allow_pdc_payment"/>
+					<field name="cheque_no" attrs="{'invisible': [('transaction_type','not in',('cheque'))],'required': [('transaction_type','in',('cheque'))],'readonly':[('pdc_entry','=',True)]}" groups="base.group_allow_pdc_payment"/>
+	                <field name="pdc_state" on_change="onchange_pdc_state(transaction_type,pdc_state)" attrs="{'invisible': [('transaction_type','not in',('cheque'))],'required': [('transaction_type','in',('cheque'))],'readonly':[('pdc_entry','=',True)]}" groups="base.group_allow_pdc_payment"/>
+	                <field name="cheque_date" attrs="{'invisible': [('transaction_type','not in',('cheque'))],'required': [('transaction_type','in',('cheque'))],'readonly':[('pdc_entry','=',True)]}" groups="base.group_allow_pdc_payment"/>
+	                <field name="pdc_entry" readonly='1' invisible="1"/>
+	            </xpath>
+				<xpath expr="/form/sheet/group/group/field[@name='name']" position="after">
+					<field name="crossed_cheque" attrs="{'invisible': [('transaction_type','not in',('cheque'))],'readonly':[('pdc_entry','=',True)]}" groups="base.group_allow_pdc_payment"/>
+					<field name="pdc_move_id" readonly='1' attrs="{'invisible': [('pdc_entry','!=',True)]}" groups="base.group_allow_pdc_payment"/>
+					<field name="bank" attrs="{'invisible': [('transaction_type','not in',('cheque'))],'readonly':[('pdc_entry','=',True)]}" groups="base.group_allow_pdc_payment"/>
+					<field name="beneficiary_name" groups="base.group_allow_pdc_payment"/>
+				</xpath> 
+				
+				
+				<xpath expr="//field[@name='reference']" position="attributes">
+				  <attribute name="required">1</attribute>
+				  <attribute name="attrs">{'readonly':[('pdc_entry','=',True)]}</attribute>
+	            </xpath>
+	            
+	            
+	             <xpath expr="//field[@name='partner_id']" position="attributes">
+				      <attribute name="attrs">{'readonly':[('pdc_entry','=',True)]}</attribute>
+				      <attribute name="domain">[('supplier','=',True)]</attribute>
+	            </xpath> 
+	            <xpath expr="//field[@name='date']" position="attributes">
+				      <attribute name="attrs">{'readonly':[('pdc_entry','=',True)]}</attribute>
+	            </xpath> 
+	            <xpath expr="//field[@name='name']" position="attributes">
+				      <attribute name="invisible">1</attribute>
+	            </xpath> 
+	                
+	            <xpath expr="//field[@name='writeoff_acc_id']" position="replace">
+	 				<field name="writeoff_acc_id"
+	                    attrs="{'invisible':['|', ('payment_option','!=','with_writeoff'), ('writeoff_amount','=',0)], 'required':[('payment_option','=','with_writeoff')]}"
+	                />
+	 			</xpath>
+	            
+	 		</field>
+		</record> 
+			
+			
+		<record id="account_voucher_payment_inherit1" model="ir.ui.view">
+            <field name="name">account.voucher.customer.form</field>
+            <field name="model">account.voucher</field>
+            <field name="type">form</field>
+             <field name="inherit_id" ref="account_voucher.view_vendor_receipt_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='state']" position="replace">
+                		<field name="state" widget="statusbar" statusbar_visible="draft,pdc,posted" statusbar_colors='{"proforma":"blue"}'/>
+                </xpath>
+                <xpath expr="/form/header/button[@string='Validate']" position="replace">
+                <button name="pdc_voucher"  type="object" string="PDC"  attrs="{'invisible': ['|','|',('pdc_state','not in','pending'),('pdc_entry','=',True),('state','=','cancel')]}" class="oe_highlight" groups="base.group_allow_pdc_payment"/>
+					<button name="proforma_voucher" string="Validate" attrs="{'invisible': [('state','in',('cancel','posted')),'|',('pdc_entry','=',False),('pdc_state','=','pending')]}" class="oe_highlight"/>
+                </xpath> 
+                 <xpath expr="/form/header/button[@name='cancel_voucher']" position="replace">
+                	<button name="cancel_voucher" string="Cancel Receipt" states="draft,proforma,pdc"/>
+                 </xpath>
+              <xpath expr="/form/sheet/group/group/field[@name='journal_id']" position="after">
+                            <field name="transaction_type" on_change="onchange_pdc_state(transaction_type,pdc_state)" attrs="{'readonly': ['|',('pdc_entry','=',True),('state','not in',('draft'))]}" required="1" groups="base.group_allow_pdc_payment"/>
+							<field name="cheque_no" attrs="{'invisible': [('transaction_type','not in',('cheque'))],'required': [('transaction_type','in',('cheque'))],'readonly': ['|',('pdc_entry','=',True),('state','not in',('draft'))]}" groups="base.group_allow_pdc_payment"/>
+                            <field name="pdc_state" on_change="onchange_pdc_state(transaction_type,pdc_state)" attrs="{'invisible': [('transaction_type','not in',('cheque'))],'required': [('transaction_type','in',('cheque'))],'readonly': ['|',('pdc_entry','=',True),('state','not in',('draft'))]}" groups="base.group_allow_pdc_payment"/>
+                            <field name="cheque_date" attrs="{'invisible': [('transaction_type','not in',('cheque'))],'required': [('transaction_type','in',('cheque'))],'readonly': ['|',('pdc_entry','=',True),('state','not in',('draft'))]}" groups="base.group_allow_pdc_payment"/>
+			                <field name="pdc_entry" readonly='1' invisible="1"/>
+                        </xpath>
+                <xpath expr="/form/sheet/group/group/field[@name='name']" position="after"> 
+				       <field name="crossed_cheque" attrs="{'invisible': [('transaction_type','not in',('cheque'))],'readonly': ['|',('pdc_entry','=',True),('state','not in',('draft'))]}" groups="base.group_allow_pdc_payment"/>
+				       <field name="pdc_move_id" readonly='1' attrs="{'invisible': [('pdc_entry','!=',True)]}" groups="base.group_allow_pdc_payment"/>
+				       <field name="bank" attrs="{'invisible': [('transaction_type','not in',('cheque'))],'readonly': ['|',('pdc_entry','=',True),('state','not in',('draft'))]}" groups="base.group_allow_pdc_payment"/>
+				       <field name="beneficiary_name" groups="base.group_allow_pdc_payment"/>
+			    </xpath> 
+                        
+                <xpath expr="//field[@name='account_id']" position="replace">
+                	<field name="account_id" invisible="1" readonly="0"/>
+                </xpath>
+
+                
+                <xpath expr="//field[@name='reference']" position="attributes">
+			      <attribute name="required">1</attribute>
+			      <attribute name="attrs">{'readonly':['|',('pdc_entry','=',True),('state','not in',('draft'))]}</attribute>
+                </xpath> 
+                
+                 <xpath expr="//field[@name='partner_id']" position="attributes">
+			      <attribute name="attrs">{'readonly':['|',('pdc_entry','=',True),('state','not in',('draft'))]}</attribute>
+                </xpath> 
+                 <xpath expr="//field[@name='date']" position="attributes">
+			      <attribute name="attrs">{'readonly':['|',('pdc_entry','=',True),('state','not in',('draft'))]}</attribute>
+                </xpath> 
+                 <xpath expr="//field[@name='name']" position="attributes">
+			      <attribute name="invisible">0</attribute>
+                </xpath> 
+                <xpath expr="//field[@name='journal_id']" position="replace">
+               		<field name="journal_id"
+                                domain="[('type','in',['bank', 'cash'])]"
+                                widget="selection"
+                                on_change="onchange_journal(journal_id, line_cr_ids, False, partner_id, date, amount, type, company_id, context)"
+                                string="Payment Method" attrs="{'readonly': [('state','in','posted')]}"/>
+                </xpath>
+                
+
+ 			
+ 			<xpath expr="//field[@name='writeoff_acc_id']" position="replace">
+ 				<field name="writeoff_acc_id"
+                    attrs="{'invisible':['|', ('payment_option','!=','with_writeoff'), ('writeoff_amount','=',0)], 'required':[('payment_option','=','with_writeoff')]}"
+                />
+ 			</xpath>
+ 			
+ 			</field>
+			</record>
+			
+			
+			<record model="ir.ui.view" id="view_other_payment_form_view_inherit">
+	            <field name="name">Other Payments</field>
+	            <field name="model">account.voucher</field>
+	            <field name="inherit_id" ref="other_payment.view_other_payment_form_view"/>
+	            <field name="arch" type="xml">
+	                <xpath expr="/form/header/button[@string='Validate']" position="replace">
+		                <button name="pdc_voucher_custom" groups="base.group_allow_pdc_payment" type="object" string="PDC"  attrs="{'invisible': ['|','|',('pdc_state','not in','pending'),('pdc_entry','=',True),('state','=','cancel')]}" class="oe_highlight"/>
+		                <button name="proforma_voucher" string="Validate" attrs="{'invisible': [('state','in',('cancel','posted')),'|',('pdc_entry','=',False),('pdc_state','=','pending')]}" class="oe_highlight"/>
+               
+	                </xpath> 
+	                <xpath expr="/form/header/button[@name='cancel_voucher']" position="replace">
+	                	<button name="cancel_voucher" string="Cancel Receipt" states="draft,proforma,pdc"/>
+	                 </xpath>
+	                <xpath expr="/form/sheet/group/group/field[@name='account_id']" position="after">
+                        <field name="transaction_type" on_change="onchange_pdc_state(transaction_type,pdc_state)" attrs="{'readonly': ['|',('pdc_entry','=',True),('state','not in',('draft'))]}" required="1" groups="base.group_allow_pdc_payment"/>
+						<field name="cheque_no" attrs="{'invisible': [('transaction_type','not in',('cheque'))],'required': [('transaction_type','in',('cheque'))],'readonly': ['|',('pdc_entry','=',True),('state','not in',('draft'))]}" groups="base.group_allow_pdc_payment"/>
+                        <field name="pdc_state" on_change="onchange_pdc_state(transaction_type,pdc_state)" attrs="{'invisible': [('transaction_type','not in',('cheque'))],'required': [('transaction_type','in',('cheque'))],'readonly': ['|',('pdc_entry','=',True),('state','not in',('draft'))]}" groups="base.group_allow_pdc_payment"/>
+                        <field name="cheque_date" attrs="{'invisible': [('transaction_type','not in',('cheque'))],'required': [('transaction_type','in',('cheque'))],'readonly': ['|',('pdc_entry','=',True),('state','not in',('draft'))]}" groups="base.group_allow_pdc_payment"/>
+		                <field name="pdc_entry" readonly='1' invisible="1"/>
+                    </xpath>
+                    <xpath expr="/form/sheet/group/group/field[@name='name']" position="after"> 
+				       <field name="crossed_cheque" attrs="{'invisible': [('transaction_type','not in',('cheque'))],'readonly': ['|',('pdc_entry','=',True),('state','not in',('draft'))]}" groups="base.group_allow_pdc_payment"/>
+				       <field name="pdc_move_id" readonly='1' attrs="{'invisible': [('pdc_entry','!=',True)]}" groups="base.group_allow_pdc_payment"/>
+				       <field name="bank" attrs="{'invisible': [('transaction_type','not in',('cheque'))],'readonly': ['|',('pdc_entry','=',True),('state','not in',('draft'))]}" groups="base.group_allow_pdc_payment"/>
+				       <field name="beneficiary_name" groups="base.group_allow_pdc_payment"/>
+			    </xpath> 
+	            </field>
+            </record>
+	
+	</data>
+</openerp>
